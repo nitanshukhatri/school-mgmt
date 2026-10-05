@@ -111,11 +111,22 @@ const findStudentToUpdate = async (paylaod) => {
     return rows;
 }
 
+const deleteStudent = async (id) => {
+    const query = `
+        DELETE FROM user_profiles WHERE user_id = $1;
+        DELETE FROM users WHERE id = $2;
+    `;
+    const queryParams = [id, id];
+    const { rowCount } = await processDBRequest({ query, queryParams });
+    return rowCount;
+}
+
 module.exports = {
     getRoleId,
     findAllStudents,
     addOrUpdateStudent,
     findStudentDetail,
     findStudentToSetStatus,
-    findStudentToUpdate
+    findStudentToUpdate,
+    deleteStudent
 };

@@ -14,9 +14,9 @@ const handleAddStudent = asyncHandler(async (req, res) => {
 });
 
 const handleUpdateStudent = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const { id: userId } = req.params;
     const payload = req.body;
-    const message = await updateStudent({ ...payload, id });
+    const message = await updateStudent({ ...payload, userId });
     res.json(message);
 });
 

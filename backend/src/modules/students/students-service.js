@@ -45,6 +45,9 @@ const addNewStudent = async (payload) => {
             return { message: ADD_STUDENT_AND_BUT_EMAIL_SEND_FAIL }
         }
     } catch (error) {
+        if (error instanceof ApiError) {
+            throw error;
+        }
         throw new ApiError(500, "Unable to add student");
     }
 }
@@ -52,9 +55,8 @@ const addNewStudent = async (payload) => {
 const updateStudent = async (payload) => {
     const result = await addOrUpdateStudent(payload);
     if (!result.status) {
-        throw new ApiError(500, result.message);
+        throw new ApiError(500, result.message || "Unable to update student");
     }
-
     return { message: result.message };
 }
 

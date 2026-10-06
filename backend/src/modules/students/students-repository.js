@@ -1,9 +1,16 @@
 const { processDBRequest } = require("../../utils");
+const { ApiError } = require("../../utils");
 
 const getRoleId = async (roleName) => {
+    if (!roleName) {
+        throw new ApiError(400, "Role name is required");
+    }
     const query = "SELECT id FROM roles WHERE name ILIKE $1";
     const queryParams = [roleName];
     const { rows } = await processDBRequest({ query, queryParams });
+    if (rows.length === 0) {
+        throw new ApiError(404, "Role not found");
+    }
     return rows[0].id;
 }
 
@@ -44,13 +51,26 @@ const findAllStudents = async (payload) => {
 }
 
 const addOrUpdateStudent = async (payload) => {
+    if (!payload || typeof payload !== 'object') {
+        throw new ApiError(400, "Invalid student data");
+    }
+
     const query = "SELECT * FROM student_add_update($1)";
     const queryParams = [payload];
     const { rows } = await processDBRequest({ query, queryParams });
+    
+    if (rows.length === 0) {
+        throw new ApiError(500, "Database operation failed: no response from student_add_update");
+    }
+    
     return rows[0];
 }
 
 const findStudentDetail = async (id) => {
+    if (!id) {
+        throw new ApiError(400, "Student ID is required");
+    }
+
     const query = `
         SELECT
             u.id,
@@ -77,13 +97,25 @@ const findStudentDetail = async (id) => {
         FROM users u
         LEFT JOIN user_profiles p ON u.id = p.user_id
         LEFT JOIN users r ON u.reporter_id = r.id
-        WHERE u.id = $1`;
+        WHERE u.id = $1 AND u.role_id = 3`;
     const queryParams = [id];
     const { rows } = await processDBRequest({ query, queryParams });
+    
+    if (rows.length === 0) {
+        throw new ApiError(404, "Student not found");
+    }
+    
     return rows[0];
 }
 
 const findStudentToSetStatus = async ({ userId, reviewerId, status }) => {
+    if (!userId) {
+        throw new ApiError(400, "User ID is required");
+    }
+    if (status === undefined || status === null) {
+        throw new ApiError(400, "Status is required");
+    }
+    
     const now = new Date();
     const query = `
         UPDATE users
@@ -100,10 +132,17 @@ const findStudentToSetStatus = async ({ userId, reviewerId, status }) => {
 
 const findStudentToUpdate = async (paylaod) => {
     const { basicDetails: { name, email }, id } = paylaod;
+    if (!id) {
+        throw new ApiError(400, "Student ID is required");
+    }
+    if (!name && !email) {
+        throw new ApiError(400, "At least one field (name or email) is required for update");
+    }
+    
     const currentDate = new Date();
     const query = `
         UPDATE users
-        SET name = $1, email = $2, updated_dt = $3
+        SET name = COALESCE($1, name), email = COALESCE($2, email), updated_dt = $3
         WHERE id = $4;
     `;
     const queryParams = [name, email, currentDate, id];
@@ -112,6 +151,10 @@ const findStudentToUpdate = async (paylaod) => {
 }
 
 const deleteStudent = async (id) => {
+    if (!id) {
+        throw new ApiError(400, "Student ID is required");
+    }
+
     const query = `
         WITH deleted_profiles AS (
             DELETE FROM user_profiles WHERE user_id = $1
